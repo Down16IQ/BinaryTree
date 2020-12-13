@@ -40,7 +40,7 @@ int main()
 	obj.insert(9);
 	obj.insert(9.5);
 	auto it = obj.begin();
-	it++;
+	it += 5;
 	std::cout << *it << " will be deleted\n";
 	obj.erase(it);
 

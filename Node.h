@@ -10,6 +10,7 @@ private:
 	template <typename Iter>
 	class BinaryTreeIterator
 	{
+		// It's needed to call private constructor outside of the class (in begin, end etc.)
 		friend class Node<T>;
 
 	public:
@@ -26,6 +27,7 @@ private:
 		// Public constructor copy (standards oblige to make it)
 		BinaryTreeIterator(BinaryTreeIterator const& it) : value(it.value) { }
 
+		// Manimulations by sign with iterator
 		bool operator !=(BinaryTreeIterator const& other) const { return value != other.value; }
 		bool operator ==(BinaryTreeIterator const& other) const { return value == other.value; }
 		Iter operator *() const { return *this->value; }
@@ -178,10 +180,12 @@ public:
 	void clear() { recursiveClearMethod(this); }	// Clear all elements except root
 	void print() { recursivePrintMethod(this); }	// Print all elements
 
-	void erase(Node<T>::iterator& iterator);			// Delete a value (TO MODIFY). Now it erases every elements after required one	
-	Node<T>* find(const Node<T>::iterator iterator) { return iterator.value; }	// Same thing as above, but it searches by iterator
+	void erase(Node<T>::iterator& iterator);		// Delete a value and rebalance the tree (doesn't work with node, cuz idk how I can this pointer, that always points to original one)
+	Node<T>* find(const Node<T>::iterator iterator)	// Same thing as above, but it searches by iterator
+	{ return iterator.value; }	
 	Node<T>* find(T data);							// Find an element by given data
 
+	// Iterator range based methods
 	iterator begin()
 	{
 		Node<T>* currentNode = this;
@@ -190,7 +194,8 @@ public:
 
 		return iterator(currentNode);
 	}
-	iterator root() { return this; }
+private: iterator root() { return this; }			// Private cuz it must be used only by methods
+public:
 	iterator end() { return nullptr; }
 	iterator rbegin()
 	{
@@ -223,11 +228,13 @@ public:
 	friend std::ostream& operator <<(std::ostream& os, const Node<T>& value) { return os << value.data; }
 
 private:
+	// Node pointers and data
 	T data;
 	Node<T>* parent;
 	Node<T>* leftLeaf;
 	Node<T>* rightLeaf;
 
+	// Methods to do other methods, which require recursion
 	void recursivePrintMethod(Node<T>* pointer);
 	void recursiveClearMethod(Node<T>* pointer);
 	void recursiveEraseMethod(Node<T>* pointer);
@@ -274,28 +281,11 @@ inline void Node<T>::insert(T data)
 	}
 }
 
-//template<typename T>
-//inline void Node<T>::erase(const Node<T>::BinaryTreeIterator<Node<T>> pointer)
-//{
-//	// If a node doesn't have a leaf
-//	if (pointer == nullptr) return;
-//
-//	// Node calls by recurtion 2 methods for his 2 leafs
-//	erase(pointer.value->leftLeaf);
-//	erase(pointer.value->rightLeaf);
-//
-//	// If it is root. Object will be deleted automaticaly when function with tree will terminate
-//	if (pointer.value->parent == nullptr) return;
-//
-//	pointer == pointer.value->parent->rightLeaf ? pointer.value->parent->rightLeaf = nullptr : pointer.value->parent->leftLeaf = nullptr;
-//
-//	delete pointer.value;
-//}
-
 template<typename T>
 inline void Node<T>::recursiveEraseMethod(Node<T>* pointer)
 {
 	if (pointer == nullptr) return;
+	// If leaf doesn't have any child
 	if (pointer->leftLeaf == nullptr && pointer->rightLeaf == nullptr) {
 		if (pointer->parent->leftLeaf == pointer) pointer->parent->leftLeaf = nullptr;
 		else pointer->parent->rightLeaf = nullptr;
@@ -303,8 +293,7 @@ inline void Node<T>::recursiveEraseMethod(Node<T>* pointer)
 	}
 	
 	Node<T>* toSet = pointer;
-	
-	// Right side (min)
+	// Right side. Find minimal element
 	if (toSet->data > root().value->data)
 	{
 		while (toSet->leftLeaf == nullptr) 
@@ -312,29 +301,27 @@ inline void Node<T>::recursiveEraseMethod(Node<T>* pointer)
 		while (toSet->leftLeaf != nullptr)
 			toSet = toSet->leftLeaf;
 	}
-	// Left side (max)
+	// Left side. Take right elements, if available, else - left one
 	else
 	{
 		if (toSet->rightLeaf != nullptr) toSet = toSet->rightLeaf;
+		else toSet = toSet->leftLeaf;
 	}
 	
 
 	recursiveEraseMethod(toSet);
-
+	// Change parent left/right element to element to toSet instead of 'pointer'
 	if (pointer->parent != nullptr)
 	{
-		if (pointer->parent->rightLeaf == pointer)
-		{
-			pointer->parent->rightLeaf = toSet;
-		}
-		else
-		{
-			pointer->parent->leftLeaf = toSet;
-		}
+		if (pointer->parent->rightLeaf == pointer) pointer->parent->rightLeaf = toSet;
+		else pointer->parent->leftLeaf = toSet;
 	}
+
+	// Change leafs parent element to element to toSet instead of 'pointer'
 	if (pointer->leftLeaf != nullptr) pointer->leftLeaf->parent = toSet;
 	if (pointer->rightLeaf != nullptr) pointer->rightLeaf->parent = toSet;
-	// It is outside of ifs cuz l/r leafs could be nullptr
+
+	// Set parent and leafs of pointer to toSet
 	toSet->parent = pointer->parent;
 	toSet->leftLeaf = pointer->leftLeaf;
 	toSet->rightLeaf = pointer->rightLeaf;
@@ -345,7 +332,10 @@ inline void Node<T>::erase(Node<T>::iterator& iterator)
 {
 	if (iterator == nullptr) return;
 	recursiveEraseMethod(iterator.value);
-	iterator = root();
+
+	//////////////////////////
+	// SPACE TO CHANGE ROOT //
+	//////////////////////////
 }
 
 template<typename T>
@@ -394,4 +384,3 @@ inline void Node<T>::recursiveClearMethod(Node<T>* pointer)
 
 	delete pointer;
 }
-
